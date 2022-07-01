@@ -31,6 +31,7 @@ AGun::AGun()
 	this->BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &AGun::OnOverlapBegin);
 	this->BoxCollider->AttachToComponent(this->RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
+
 }
 
 // Called when the game starts or when spawned

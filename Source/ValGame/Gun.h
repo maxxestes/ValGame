@@ -10,6 +10,14 @@ enum GunType
 	Knife       UMETA(DisplayName = "Knife"),
 };
 
+UENUM()
+enum FireType
+{
+	Auto		   UMETA(DisplayName = "Auto"),
+	Burst		   UMETA(DisplayName = "Burst"),
+	SemiAuto       UMETA(DisplayName = "SemiAuto"),
+};
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
@@ -31,15 +39,11 @@ public:
 
 
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
 		float fireRate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
 		uint8 magSize;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
-		uint8 AutoOrSemi;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aiming")
 		float WalkAimAccuracy;
@@ -63,7 +67,10 @@ public:
 		float HorizontalRecoilMultiplier;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Type)
-		TEnumAsByte<GunType> type;
+		TEnumAsByte<GunType> GunType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Type)
+		TEnumAsByte<FireType> FireType;
 
 	UPROPERTY(EditAnywhere)
 		USceneComponent* SceneComponent;

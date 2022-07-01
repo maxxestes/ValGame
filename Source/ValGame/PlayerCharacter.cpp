@@ -83,6 +83,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 void APlayerCharacter::OnFire()
 {
 	// try and fire a projectile
+
 	if (_CurrentWeapon)
 	{
 		UWorld* const World = GetWorld();
@@ -110,8 +111,10 @@ void APlayerCharacter::OnFire()
 			CurrentHorRecoil += FMath::RandRange(-_CurrentWeapon->HorizontalRecoilMultiplier, _CurrentWeapon->HorizontalRecoilMultiplier);
 			CurrentHorRecoil = FMath::Clamp(CurrentHorRecoil, -_CurrentWeapon->maxRecoilMultiplier, _CurrentWeapon->maxRecoilMultiplier);
 
-
-			GetWorld()->GetTimerManager().SetTimer(FireTimerHandle, this, &APlayerCharacter::OnFire, .2f, false);
+			if (_CurrentWeapon->GunType == FireType::Auto) {
+				GetWorld()->GetTimerManager().SetTimer(FireTimerHandle, this, &APlayerCharacter::OnFire, _CurrentWeapon->fireRate, false);
+			}
+			
 
 		}
 	}
@@ -119,9 +122,11 @@ void APlayerCharacter::OnFire()
 
 void APlayerCharacter::OnFireStop()
 {
-	GetWorld()->GetTimerManager().ClearTimer(FireTimerHandle);
-	CurrentVertRecoil = 0.f;
-	CurrentHorRecoil = 0.f;
+	if (_CurrentWeapon) {
+		GetWorld()->GetTimerManager().ClearTimer(FireTimerHandle);
+		CurrentVertRecoil = 0.f;
+		CurrentHorRecoil = 0.f;
+	}
 }
 
 void APlayerCharacter::OnMove()
@@ -190,10 +195,10 @@ void APlayerCharacter::ScrollToPrevWeapon()
 void APlayerCharacter::PickUpGun(AGun* newGun)
 {
 	if (newGun) {
-		if (newGun->type == GunType::Primary) {
+		if (newGun->GunType == GunType::Primary) {
 			_Primary = newGun;
 		}
-		else if (newGun->type == GunType::Secondary) {
+		else if (newGun->GunType == GunType::Secondary) {
 			_Secondary = newGun;
 		}
 		else 
@@ -218,6 +223,7 @@ void APlayerCharacter::EquipWeapon(AGun* newCurrentWeapon) {
 	*/
 	if (newCurrentWeapon) {
 		_CurrentWeapon = newCurrentWeapon;
+		_CurrentWeapon->SpentShot = false;
 	}
 }
 
