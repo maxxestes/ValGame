@@ -65,11 +65,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::OnFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APlayerCharacter::OnFireStop);
 
-	//Previously used to check to see if player is moving for gun accuracy. Now checked in tick.
-	PlayerInputComponent->BindAction("Moving", IE_Pressed, this, &APlayerCharacter::OnMove);
-	PlayerInputComponent->BindAction("Moving", IE_Released, this, &APlayerCharacter::OnMoveStop);
-
 	PlayerInputComponent->BindAction("PrintInventory", IE_Pressed, this, &APlayerCharacter::PrintInventory);
+
+	PlayerInputComponent->BindAction("PressDoor", IE_Pressed, this, &APlayerCharacter::PressDoor);
 
 	PlayerInputComponent->BindAction("SwitchWeaponPrimary", IE_Pressed, this, &APlayerCharacter::ChangeToPrimary);
 	PlayerInputComponent->BindAction("SwitchWeaponSecondary", IE_Pressed, this, &APlayerCharacter::ChangeToSecondary);
@@ -129,21 +127,7 @@ void APlayerCharacter::OnFireStop()
 	}
 }
 
-void APlayerCharacter::OnMove()
-{
-	//isRunning = true;
-	//numHeldMoveKeys++;
-	//GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, "Running");
-}
 
-void APlayerCharacter::OnMoveStop()
-{
-	//numHeldMoveKeys--;
-	//if (numHeldMoveKeys == 0) {
-	//	isRunning = false;
-	//	GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, "NotRunning");
-	//}
-}
 
 void APlayerCharacter::ChangeToPrimary()
 {
@@ -215,15 +199,28 @@ void APlayerCharacter::PickUpGun(AGun* newGun)
 	
 }
 
-void APlayerCharacter::EquipWeapon(AGun* newCurrentWeapon) {
-	/*
-	if (_equippedWeapons.Num() - 1 >= indexOfWeapon) {
-		_CurrentWeapon = _equippedWeapons[indexOfWeapon];
+void APlayerCharacter::PressDoor() {
+	if (_currentSwitch) {
+		_currentSwitch->_LinkedDoor->RaiseDoor();
+		GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, _currentSwitch->GetName());
 	}
-	*/
+}
+
+void APlayerCharacter::SwitchProximityEnter(ADoorSwitchActor* newSwitch)
+{
+	if (newSwitch) {
+		_currentSwitch = newSwitch;
+	}
+}
+
+void APlayerCharacter::SwitchProximityExit()
+{
+	_currentSwitch = nullptr;
+}
+
+void APlayerCharacter::EquipWeapon(AGun* newCurrentWeapon) {
 	if (newCurrentWeapon) {
 		_CurrentWeapon = newCurrentWeapon;
-		_CurrentWeapon->SpentShot = false;
 	}
 }
 

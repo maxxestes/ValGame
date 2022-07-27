@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Gun.h"
+#include "DoorSwitchActor.h"
 #include "PlayerCharacter.generated.h"
 
 class UInputComponent;
@@ -46,10 +47,6 @@ protected:
 
 	void OnFireStop();
 
-	void OnMove();
-
-	void OnMoveStop();
-
 	void ChangeToPrimary();
 
 	void ChangeToSecondary();
@@ -77,6 +74,7 @@ protected:
 		uint8 weaponIndex;
 
 	uint8 numHeldMoveKeys;
+		
 
 public:	
 	// Called every frame
@@ -92,6 +90,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void PrintInventory();
 
+	void PressDoor();
+
+	void SwitchProximityEnter(ADoorSwitchActor* newSwitch);
+
+	void SwitchProximityExit();
+
 
 
 private:
@@ -103,6 +107,8 @@ private:
 	AGun* _Knife;
 
 	AGun* _CurrentWeapon;
+
+	ADoorSwitchActor* _currentSwitch;
 
 
 };
