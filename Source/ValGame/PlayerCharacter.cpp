@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Math/UnrealMathUtility.h"
 
 
@@ -22,8 +23,10 @@ APlayerCharacter::APlayerCharacter()
 	CurrentVertRecoil = 0.f;
 	CurrentHorRecoil = 0.f;
 	isRunning = false;
+	isWalking = false;
 	weaponIndex = 0;
 	numHeldMoveKeys = 0;
+	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
 
 }
 
@@ -39,6 +42,20 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	float changeInYaw = FirstPersonCameraComponent->GetForwardVector().Rotation().Yaw - LastFrameLookAt.Rotation().Yaw;
+
+	if (changeInYaw > 0) {
+		lookingRight = true;
+		lookingLeft = false;
+	}
+	else if (changeInYaw < 0) {
+		lookingLeft = true;
+		lookingRight = false;
+	}
+	else {
+		lookingLeft = false;
+		lookingRight = false;
+	}
 
 	if (this->GetVelocity().Size() == 0) {
 		isRunning = false;
@@ -48,6 +65,8 @@ void APlayerCharacter::Tick(float DeltaTime)
 		isRunning = true;
 		GEngine->AddOnScreenDebugMessage(18, 3, FColor::White, "Running");
 	}
+
+	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
 }
 
 // Called to bind functionality to input
@@ -65,6 +84,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::OnFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APlayerCharacter::OnFireStop);
 
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+
 	PlayerInputComponent->BindAction("PrintInventory", IE_Pressed, this, &APlayerCharacter::PrintInventory);
 
 	PlayerInputComponent->BindAction("PressDoor", IE_Pressed, this, &APlayerCharacter::PressDoor);
@@ -72,6 +94,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("SwitchWeaponPrimary", IE_Pressed, this, &APlayerCharacter::ChangeToPrimary);
 	PlayerInputComponent->BindAction("SwitchWeaponSecondary", IE_Pressed, this, &APlayerCharacter::ChangeToSecondary);
 	PlayerInputComponent->BindAction("SwitchWeaponKnife", IE_Pressed, this, &APlayerCharacter::ChangeToKnife);
+
+	PlayerInputComponent->BindAction("Walk", IE_Pressed, this, &APlayerCharacter::Walk);
+	PlayerInputComponent->BindAction("Walk", IE_Released, this, &APlayerCharacter::OnWalkStop);
+
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &APlayerCharacter::Crouch);
+	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &APlayerCharacter::OnCrouchStop);
 
 	PlayerInputComponent->BindAction("ScrollNextWeapon", IE_Pressed, this, &APlayerCharacter::ScrollToNextWeapon);
 	PlayerInputComponent->BindAction("ScrollPrevWeapon", IE_Pressed, this, &APlayerCharacter::ScrollToPrevWeapon);
@@ -87,18 +115,40 @@ void APlayerCharacter::OnFire()
 		UWorld* const World = GetWorld();
 		if (World != nullptr)
 		{
+			FHitResult Hit;
+			TArray<FHitResult> hitResultArray;
 			FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
 			FVector Start = FirstPersonCameraComponent->GetComponentLocation();
 
+
 			NextShotVector = CalculateNextVector(NextShotVector);
 
-			FVector End = ((NextShotVector * 500) + Start);
+			FVector End = ((NextShotVector * 3000) + Start);
 			FCollisionQueryParams CollisionParams;
 			CollisionParams.bTraceComplex = true;
 			CollisionParams.AddIgnoredActor(this);
 
+			FCollisionQueryParams traceParams;
+
+			FCollisionObjectQueryParams objectParams;
+			//objectParams.ObjectTypesToQuery = ABreakableDoor;
+
+			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1, traceParams);
+
+			
+			
+			//GetWorld()->LineTraceMultiByObjectType(hitResultArray, Start, End)
 
 			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, 0, 5);
+			
+
+			if (bHit) {
+				DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
+					ABreakableDoor* doorHit = (ABreakableDoor*)Hit.GetActor();
+				if (doorHit) {
+					doorHit->setHealth(doorHit->getHealth() - _CurrentWeapon->baseDamage);
+				}
+			}
 
 			CurrentVertRecoil += _CurrentWeapon->VerticleRecoilMultiplier;
 			
@@ -174,6 +224,26 @@ void APlayerCharacter::ScrollToPrevWeapon()
 			//Can't switch past Primary. Not a loop
 		}
 	}
+}
+
+void APlayerCharacter::Walk()
+{
+	isWalking = true;
+}
+
+void APlayerCharacter::OnWalkStop()
+{
+	isWalking = false;
+}
+
+void APlayerCharacter::Crouch()
+{
+	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 32.f)); // Position the camera
+}
+
+void APlayerCharacter::OnCrouchStop()
+{
+	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.f)); // Position the camera
 }
 
 void APlayerCharacter::PickUpGun(AGun* newGun)
@@ -261,12 +331,18 @@ FVector APlayerCharacter::CalculateNextVector(const FVector& CurrentLookAtVector
 	FRotator Rot = CurrentLookAtVector.Rotation();
 	if (isRunning) {
 		float maxRecoil = _CurrentWeapon->maxRecoilMultiplier;
-
-		float vertRecoil = FMath::RandRange(-maxRecoil, maxRecoil);
+		float maxAdditionalRecoil;
+		if (isWalking) {
+			maxAdditionalRecoil = _CurrentWeapon->WalkAimAccuracy;
+		}
+		else {
+			maxAdditionalRecoil = _CurrentWeapon->maxRecoilMultiplier;
+		}
+		float vertRecoil = FMath::RandRange(-maxAdditionalRecoil, maxAdditionalRecoil);
 		vertRecoil += CurrentVertRecoil;
 		vertRecoil = FMath::Clamp(vertRecoil, -maxRecoil, maxRecoil);
 
-		float horRecoil = FMath::RandRange(-maxRecoil, maxRecoil);
+		float horRecoil = FMath::RandRange(-maxAdditionalRecoil, maxAdditionalRecoil);
 		horRecoil += CurrentHorRecoil;
 		horRecoil = FMath::Clamp(horRecoil, -maxRecoil, maxRecoil);
 
@@ -288,6 +364,17 @@ void APlayerCharacter::MoveForward(float Value)
 {
 	if (Value != 0.0f)
 	{
+		if (isWalking) {
+			Value = Value / 2;
+		}
+
+		
+
+		
+
+
+
+		
 		// add movement in that direction
 		AddMovementInput(GetActorForwardVector(), Value);
 	}
@@ -297,6 +384,24 @@ void APlayerCharacter::MoveRight(float Value)
 {
 	if (Value != 0.0f)
 	{
+		if (isWalking) {
+			Value = Value / 2;
+		}
+		UCharacterMovementComponent* movComp = this->GetCharacterMovement();
+
+		if (movComp->IsFalling()) {
+
+			if (lookingRight && Value > 0) {
+				movComp->AirControl = 1;
+			}
+			else if (lookingLeft && Value < 0) {
+				movComp->AirControl = 1;
+			}
+			else {
+				movComp->AirControl = 0;
+			}
+		}
+
 		// add movement in that direction
 		AddMovementInput(GetActorRightVector(), Value);
 	}

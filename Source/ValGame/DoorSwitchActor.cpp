@@ -24,10 +24,13 @@ ADoorSwitchActor::ADoorSwitchActor()
 
 
 
+
+
 	this->BoxCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollider"));
 	this->BoxCollider->SetGenerateOverlapEvents(true);
 	this->BoxCollider->SetWorldScale3D(FVector(1.0f, 1.0f, 1.0f));
 	this->BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ADoorSwitchActor::OnOverlapBegin);
+	this->BoxCollider->OnComponentEndOverlap.AddDynamic(this, &ADoorSwitchActor::OnOverlapEnd);
 	this->BoxCollider->AttachToComponent(this->RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 }
@@ -55,14 +58,14 @@ void ADoorSwitchActor::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
 		}
 	}
 
-	GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, *doorSwitch);
+	//GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, *doorSwitch);
 }
 
 void ADoorSwitchActor::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 
-	FString doorSwitch = FString::Printf(TEXT("In range of: %s"), *GetName());
+	FString doorSwitch = FString::Printf(TEXT("Leaving range of: %s"), *GetName());
 	GEngine->AddOnScreenDebugMessage(1, 5, FColor::White, doorSwitch);
 
 
@@ -74,7 +77,7 @@ void ADoorSwitchActor::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor*
 		}
 	}
 
-	GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, *doorSwitch);
+	//GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, *doorSwitch);
 }
 
 

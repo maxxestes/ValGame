@@ -57,6 +57,14 @@ protected:
 	
 	void ScrollToPrevWeapon();
 
+	void Walk();
+
+	void OnWalkStop();
+
+	void Crouch();
+
+	void OnCrouchStop();
+
 	FVector CalculateNextVector(const FVector& CurrentLookAtVector);
 
 	FTimerHandle FireTimerHandle;
@@ -70,10 +78,19 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 		float isRunning;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+		float isWalking;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Management")
 		uint8 weaponIndex;
 
 	uint8 numHeldMoveKeys;
+
+	FVector LastFrameLookAt;
+
+	bool lookingRight;
+
+	bool lookingLeft;
 		
 
 public:	

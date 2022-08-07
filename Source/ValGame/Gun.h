@@ -45,6 +45,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
 		uint8 magSize;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
+		uint8 baseDamage;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aiming")
 		float WalkAimAccuracy;
 

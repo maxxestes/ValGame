@@ -34,6 +34,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		UStaticMeshComponent* Door;
 
+	
+
 	//TimelineComponent to animate Door meshes
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		UTimelineComponent* DoorTimelineComp;
@@ -48,6 +50,10 @@ public:
 	
 
 	void RaiseDoor();
+
+	float getHealth();
+
+	void setHealth(float newHealth);
 
 private:
 	//Float Track Signature to handle our update track event

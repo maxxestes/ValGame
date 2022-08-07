@@ -11,6 +11,8 @@ ABreakableDoor::ABreakableDoor()
 
 	isRaised = false;
 
+	this->setHealth(100);
+
 
 	//Create our Default Components
 	DoorFrame = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DoorFrameMesh"));
@@ -72,11 +74,24 @@ void ABreakableDoor::RaiseDoor()
 	}
 }
 
+float ABreakableDoor::getHealth()
+{
+	return this->Health;
+}
+
+void ABreakableDoor::setHealth(float newHealth)
+{
+	if (newHealth <= 0) {
+		Destroy();
+	}
+	this->Health = newHealth;
+}
+
 void ABreakableDoor::UpdateTimelineComp(float Output)
 {
 
 
-	FVector DoorNewLocation = FVector(0.0f, 45.f, Output);
+	FVector DoorNewLocation = FVector(0.0f, 0.0f, Output);
 	Door->SetRelativeLocation(DoorNewLocation);
 }
 
