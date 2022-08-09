@@ -18,12 +18,10 @@ ABreakableDoor::ABreakableDoor()
 	DoorFrame = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DoorFrameMesh"));
 	Door = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DoorMesh"));
 	DoorTimelineComp = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimelineComp"));
-	DoorProxVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("DoorProximityVolume"));
 
 	//Setup our Attachments
 	DoorFrame->SetupAttachment(RootComponent);
 	Door->AttachToComponent(DoorFrame, FAttachmentTransformRules::KeepRelativeTransform);
-	DoorProxVolume->AttachToComponent(DoorFrame, FAttachmentTransformRules::KeepRelativeTransform);
 
 }
 

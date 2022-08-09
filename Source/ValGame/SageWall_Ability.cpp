@@ -5,24 +5,53 @@
 
 
 ASageWall_Ability::ASageWall_Ability() {
-	//this->SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
+	this->SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 
-	//SetRootComponent(this->SceneComponent);
-
-	//static ConstructorHelpers::FObjectFinder<UStaticMesh>MeshAsset(TEXT("/Game/StarterContent/Shapes/Shape_Cube"));
-
-	//NumberOfCharges = 1;
-
-	//WallComponent = MeshAsset.Object;
-
-	//this->WallComponent->AttachTo(SceneComponent);
+	SetRootComponent(this->SceneComponent);
 
 
+	this->_wallArray.SetNum(5);
+
+
+	for (int i = 0; i < 5; i++) {
+		this->_wallArray[i] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallMesh" + i));
+		this->_wallArray[i]->AttachTo(SceneComponent);
+	}
+	
+	WallTimelineComp = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimelineComp"));
 }
 
 
-void ASageWall_Ability::PlaceWall(FVector playerLookVector) {
-
-
+void ASageWall_Ability::PlaceWall() 
+{
+	WallTimelineComp->Play();
 }
+
+void ASageWall_Ability::BeginPlay()
+{
+	Super::BeginPlay();
+
+	FOnTimelineEventStatic onTimelineFinishedCallback;
+
+	//Binding our float track to our UpdateTimelineComp Function's output
+	UpdateFunctionFloat.BindDynamic(this, &ASageWall_Ability::UpdateTimelineComp);
+
+
+	//If we have a float curve, bind it's graph to our update function
+	if (WallTimelineFloatCurve)
+	{
+		WallTimelineComp->AddInterpFloat(WallTimelineFloatCurve, UpdateFunctionFloat);
+		//onTimelineFinishedCallback.BindUFunction(this, FName{ TEXT("ChangeRaiseStatus") });
+		//WallTimelineFloatCurve->SetTimelineFinishedFunc(onTimelineFinishedCallback);
+	}
+}
+
+void ASageWall_Ability::UpdateTimelineComp(float Output)
+{
+	FVector prevScale = this->SceneComponent->GetRelativeScale3D();
+	prevScale.Z = Output;
+	this->SceneComponent->SetRelativeScale3D(prevScale);
+}
+
+
 

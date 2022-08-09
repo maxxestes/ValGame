@@ -6,7 +6,9 @@
 #include "GameFramework/Character.h"
 #include "Gun.h"
 #include "DoorSwitchActor.h"
+#include "SageWall_Ability.h"
 #include "PlayerCharacter.generated.h"
+
 
 class UInputComponent;
 class USkeletalMeshComponent;
@@ -65,6 +67,8 @@ protected:
 
 	void OnCrouchStop();
 
+	void UseWall();
+
 	FVector CalculateNextVector(const FVector& CurrentLookAtVector);
 
 	FTimerHandle FireTimerHandle;
@@ -113,6 +117,9 @@ public:
 
 	void SwitchProximityExit();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TSubclassOf<ASageWall_Ability> SageWall_BP;
+
 
 
 private:
@@ -126,6 +133,10 @@ private:
 	AGun* _CurrentWeapon;
 
 	ADoorSwitchActor* _currentSwitch;
+
+	ASageWall_Ability* _AbilityOne;
+
+
 
 
 };

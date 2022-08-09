@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CharacterAbility.h"
+#include "Components/TimelineComponent.h"
 #include "SageWall_Ability.generated.h"
 
 /**
@@ -17,12 +18,41 @@ class VALGAME_API ASageWall_Ability : public ACharacterAbility
 
 		ASageWall_Ability();
 
-		void PlaceWall(FVector placeLocation);
+		void PlaceWall();
+
+		UPROPERTY(EditAnywhere)
+			UCurveFloat* WallTimelineFloatCurve;
+
+	protected:
+
+		virtual void BeginPlay() override;
+
+
+		//TimelineComponent to animate Door meshes
+		UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+			UTimelineComponent* WallTimelineComp;
+
+		//BoxComponent which will be used as our Proximity volume.
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+			class UBoxComponent* WallProxVolume;
+
+
 
 	private:
 
+		//Float Track Signature to handle our update track event
+		FOnTimelineFloat UpdateFunctionFloat;
+
+		//Function which updates our Door's relative location with the timeline graph
+		UFUNCTION()
+			void UpdateTimelineComp(float Output);
+
+		UPROPERTY(EditAnywhere)
 		USceneComponent* SceneComponent;
 
-		UStaticMesh* WallComponent;
+
+		UPROPERTY(EditAnywhere)
+		TArray<UStaticMeshComponent*> _wallArray;
+
 	
 };

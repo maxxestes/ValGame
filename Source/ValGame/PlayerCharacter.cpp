@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "SageWall_Ability.h"
 #include "Math/UnrealMathUtility.h"
 
 
@@ -27,6 +28,7 @@ APlayerCharacter::APlayerCharacter()
 	weaponIndex = 0;
 	numHeldMoveKeys = 0;
 	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
+
 
 }
 
@@ -104,6 +106,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("ScrollNextWeapon", IE_Pressed, this, &APlayerCharacter::ScrollToNextWeapon);
 	PlayerInputComponent->BindAction("ScrollPrevWeapon", IE_Pressed, this, &APlayerCharacter::ScrollToPrevWeapon);
 
+
+	PlayerInputComponent->BindAction("Wall", IE_Pressed, this, &APlayerCharacter::UseWall);
 }
 
 void APlayerCharacter::OnFire()
@@ -244,6 +248,57 @@ void APlayerCharacter::Crouch()
 void APlayerCharacter::OnCrouchStop()
 {
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.f)); // Position the camera
+}
+
+void APlayerCharacter::UseWall()
+{
+	FHitResult Hit;
+	FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
+	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+
+	FVector End = ((NextShotVector * 3000) + Start);
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
+	CollisionParams.AddIgnoredActor(this);
+
+	FCollisionQueryParams traceParams;
+
+	FCollisionObjectQueryParams objectParams;
+	//objectParams.ObjectTypesToQuery = ABreakableDoor;
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, traceParams);
+
+
+
+	//GetWorld()->LineTraceMultiByObjectType(hitResultArray, Start, End)
+
+	DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, 0, 5);
+
+
+	if (bHit) {
+		DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
+		ASageWall_Ability* newWall = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
+		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
+		if (dist > 800) {
+			
+			Hit.ImpactPoint = ((NextShotVector * 800) + Start);
+		}
+		//this->SetActorLocation(Hit.ImpactPoint);
+		FFindFloorResult floorResult;
+		FHitResult hitResult;
+		this->GetCharacterMovement()->FindFloor(Hit.ImpactPoint, floorResult, false, &hitResult);
+		if (floorResult.bBlockingHit) {
+			Hit.ImpactPoint = floorResult.HitResult.ImpactPoint;
+			GEngine->AddOnScreenDebugMessage(19, 3, FColor::White, "go block");
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(19, 3, FColor::White, "no block");
+		}
+		//this->GetCharacterMovement()->FindFloor();
+		newWall->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
+		newWall->PlaceWall();
+		
+	}
 }
 
 void APlayerCharacter::PickUpGun(AGun* newGun)
