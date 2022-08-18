@@ -5,9 +5,14 @@
 
 void UPlayerWidget::NativeConstruct()
 {
-    if (NameTextBlock)
+    if (TB_Ammo)
     {
-        NameTextBlock->SetText(FText::FromString("0 / 0"));
+        TB_Ammo->SetText(FText::FromString("0 / 0"));
+    }
+
+    if (SageWallCounter)
+    {
+        SageWallCounter->SetText(FText::FromString("Wall Count: 1"));
     }
 }
 
@@ -17,6 +22,12 @@ void UPlayerWidget::updateAmmoCount(uint8 magAmmo, uint8 reserveAmmo)
     FString currentMag = FString::FromInt(magAmmo);
     FString currentReserve = FString::FromInt(reserveAmmo);
 
-    NameTextBlock->SetText(FText::FromString(currentMag + " / " + currentReserve));
+    TB_Ammo->SetText(FText::FromString(currentMag + " / " + currentReserve));
 
+}
+
+void UPlayerWidget::updateWallCount(uint8 AvailableWalls)
+{
+    FString currentWalls = FString::FromInt(AvailableWalls);
+    SageWallCounter->SetText(FText::FromString("Wall Count: " + currentWalls));
 }

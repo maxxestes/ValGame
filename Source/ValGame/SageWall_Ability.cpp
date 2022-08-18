@@ -23,6 +23,8 @@ ASageWall_Ability::ASageWall_Ability() {
 	}
 	
 	WallTimelineComp = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimelineComp"));
+
+	NumberOfCharges = 1;
 }
 
 

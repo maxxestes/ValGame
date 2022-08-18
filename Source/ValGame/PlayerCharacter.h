@@ -134,8 +134,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TSubclassOf<ASageWall_Ability> SageWall_BP;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Weapon")
-	UPlayerWidget* ammoWidget;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	//UPlayerWidget* ammoWidget;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TSubclassOf<UPlayerWidget> PlayerWidget_BP;
 
 
 
@@ -152,6 +155,8 @@ private:
 	ADoorSwitchActor* _currentSwitch;
 
 	ASageWall_Ability* _AbilityOne;
+
+	UPlayerWidget* _AmmoWidget;
 
 
 

@@ -31,6 +31,10 @@ APlayerCharacter::APlayerCharacter()
 	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
 
 
+
+
+
+
 }
 
 // Called when the game starts or when spawned
@@ -39,6 +43,10 @@ void APlayerCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	//ammoWidget->NativeConstruct();
+	_AmmoWidget = CreateWidget<UPlayerWidget>(GetWorld(), PlayerWidget_BP);
+	if (_AmmoWidget) {
+		_AmmoWidget->AddToViewport();
+	}
 
 }
 
@@ -188,7 +196,7 @@ void APlayerCharacter::OnFire()
 
 			_CurrentWeapon->ManageAmmoAfterShot(1);
 
-			//ammoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
+			_AmmoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
 			
 
 		}
@@ -285,7 +293,8 @@ void APlayerCharacter::UseWall()
 		_AbilityOne->PlaceWall();
 		HoldingWall = false;
 		_CurrentWeapon = _Primary;
-		_AbilityOne = nullptr;
+		_AbilityOne->NumberOfCharges = 0;
+		_AmmoWidget->updateWallCount(_AbilityOne->NumberOfCharges);
 	}
 }
 
@@ -300,51 +309,50 @@ void APlayerCharacter::HoldWall()
 		}
 		return;
 	}
-	HoldingWall = true;
-	_CurrentWeapon = nullptr;
-	this->InputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::UseWall);
-	FHitResult Hit;
-	FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
-	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+	if (_AbilityOne && _AbilityOne->NumberOfCharges <= 0) {
+		return;
+	}
+
+	
+		HoldingWall = true;
+		_CurrentWeapon = nullptr;
+		this->InputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::UseWall);
+		FHitResult Hit;
+		FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
+		FVector Start = FirstPersonCameraComponent->GetComponentLocation();
 
 
 
-	FVector End = ((NextShotVector * 10000) + Start);
-	FCollisionQueryParams CollisionParams;
-	CollisionParams.bTraceComplex = true;
-	CollisionParams.AddIgnoredActor(this);
+		FVector End = ((NextShotVector * 10000) + Start);
+		FCollisionQueryParams CollisionParams;
+		CollisionParams.bTraceComplex = true;
+		CollisionParams.AddIgnoredActor(this);
 
 
-	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams);
-
-	//DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, 0, 5);
+		bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams);
 
 
-	if (bHit) {
-		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
-		_AbilityOne = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
-		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
-		if (dist > 800) {
-			Hit.ImpactPoint = ((NextShotVector * 800) + Start);
-		}
-		FVector DownVec = Hit.ImpactPoint;
-		DownVec.Z -= 3000;
-		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
-		//DrawDebugLine(GetWorld(), Hit.ImpactPoint, DownVec, FColor::Red, false, 5.f, 0, 5);
-		GetWorld()->LineTraceSingleByChannel(Hit, Hit.ImpactPoint, DownVec, ECC_Visibility, CollisionParams);
-		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
-		//newWall->PlaceWall();
+		if (bHit) {
+			_AbilityOne = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
+			float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
+			if (dist > 800) {
+				Hit.ImpactPoint = ((NextShotVector * 800) + Start);
+			}
+			FVector DownVec = Hit.ImpactPoint;
+			DownVec.Z -= 3000;
+			GetWorld()->LineTraceSingleByChannel(Hit, Hit.ImpactPoint, DownVec, ECC_Visibility, CollisionParams);
+			_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
 		
-		FRotator wallRot = FRotator(0.f, 90.f, 0.f);
+			FRotator wallRot = FRotator(0.f, 90.f, 0.f);
 
-		FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
-		playerLook.Pitch = 0.f;
-
-
-		_AbilityOne->SetActorRotation(playerLook);
+			FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
+			playerLook.Pitch = 0.f;
 
 
-		_AbilityOne->AddActorLocalRotation(wallRot);
+			_AbilityOne->SetActorRotation(playerLook);
+
+
+			_AbilityOne->AddActorLocalRotation(wallRot);
 	
 		
 
@@ -445,6 +453,7 @@ void APlayerCharacter::Reload()
 {
 	if (_CurrentWeapon) {
 		_CurrentWeapon->Reload();
+		_AmmoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
 	}
 }
 
@@ -463,6 +472,7 @@ void APlayerCharacter::SwitchProximityExit()
 void APlayerCharacter::EquipWeapon(AGun* newCurrentWeapon) {
 	if (newCurrentWeapon) {
 		_CurrentWeapon = newCurrentWeapon;
+		_AmmoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
 	}
 }
 
