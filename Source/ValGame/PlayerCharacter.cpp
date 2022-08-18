@@ -25,6 +25,7 @@ APlayerCharacter::APlayerCharacter()
 	CurrentHorRecoil = 0.f;
 	isRunning = false;
 	isWalking = false;
+	HoldingWall = false;
 	weaponIndex = 0;
 	numHeldMoveKeys = 0;
 	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
@@ -36,6 +37,8 @@ APlayerCharacter::APlayerCharacter()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//ammoWidget->NativeConstruct();
 
 }
 
@@ -69,6 +72,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 	}
 
 	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
+	if (HoldingWall) {
+		UpdateWallPos(changeInYaw);
+	}
 }
 
 // Called to bind functionality to input
@@ -93,6 +99,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	PlayerInputComponent->BindAction("PressDoor", IE_Pressed, this, &APlayerCharacter::PressDoor);
 
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerCharacter::Reload);
+
 	PlayerInputComponent->BindAction("SwitchWeaponPrimary", IE_Pressed, this, &APlayerCharacter::ChangeToPrimary);
 	PlayerInputComponent->BindAction("SwitchWeaponSecondary", IE_Pressed, this, &APlayerCharacter::ChangeToSecondary);
 	PlayerInputComponent->BindAction("SwitchWeaponKnife", IE_Pressed, this, &APlayerCharacter::ChangeToKnife);
@@ -107,19 +115,20 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("ScrollPrevWeapon", IE_Pressed, this, &APlayerCharacter::ScrollToPrevWeapon);
 
 
-	PlayerInputComponent->BindAction("Wall", IE_Pressed, this, &APlayerCharacter::UseWall);
+	PlayerInputComponent->BindAction("Wall", IE_Pressed, this, &APlayerCharacter::HoldWall);
 }
 
 void APlayerCharacter::OnFire()
 {
 	// try and fire a projectile
 
-	if (_CurrentWeapon)
+	if (_CurrentWeapon && _CurrentWeapon->currentMagAmmo > 0)
 	{
 		UWorld* const World = GetWorld();
 		if (World != nullptr)
 		{
 			FHitResult Hit;
+			FHitResult HitWall;
 			TArray<FHitResult> hitResultArray;
 			FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
 			FVector Start = FirstPersonCameraComponent->GetComponentLocation();
@@ -139,6 +148,8 @@ void APlayerCharacter::OnFire()
 
 			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1, traceParams);
 
+			bool bHitWall = GetWorld()->LineTraceSingleByChannel(HitWall, Start, End, ECC_GameTraceChannel2, traceParams);
+
 			
 			
 			//GetWorld()->LineTraceMultiByObjectType(hitResultArray, Start, End)
@@ -154,6 +165,14 @@ void APlayerCharacter::OnFire()
 				}
 			}
 
+			if (bHitWall) {
+				DrawDebugBox(GetWorld(), HitWall.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
+				USageWallComp* wallHit = (USageWallComp*)HitWall.GetComponent();
+				if (wallHit) {
+					wallHit->setHealth(wallHit->getHealth() - _CurrentWeapon->baseDamage);
+				}
+			}
+
 			CurrentVertRecoil += _CurrentWeapon->VerticleRecoilMultiplier;
 			
 			if (CurrentVertRecoil > _CurrentWeapon->maxRecoilMultiplier) {
@@ -166,6 +185,10 @@ void APlayerCharacter::OnFire()
 			if (_CurrentWeapon->GunType == FireType::Auto) {
 				GetWorld()->GetTimerManager().SetTimer(FireTimerHandle, this, &APlayerCharacter::OnFire, _CurrentWeapon->fireRate, false);
 			}
+
+			_CurrentWeapon->ManageAmmoAfterShot(1);
+
+			//ammoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
 			
 
 		}
@@ -213,6 +236,9 @@ void APlayerCharacter::ScrollToNextWeapon()
 			//Can't switch past knife. Not a loop
 		}
 	}
+	else if (HoldingWall) {
+		PutWallAway();
+	}
 }
 
 void APlayerCharacter::ScrollToPrevWeapon()
@@ -227,6 +253,9 @@ void APlayerCharacter::ScrollToPrevWeapon()
 		else {
 			//Can't switch past Primary. Not a loop
 		}
+	}
+	else if (HoldingWall) {
+		PutWallAway();
 	}
 }
 
@@ -252,11 +281,33 @@ void APlayerCharacter::OnCrouchStop()
 
 void APlayerCharacter::UseWall()
 {
+	if (_AbilityOne) {
+		_AbilityOne->PlaceWall();
+		HoldingWall = false;
+		_CurrentWeapon = _Primary;
+		_AbilityOne = nullptr;
+	}
+}
+
+void APlayerCharacter::HoldWall()
+{
+	if (HoldingWall) {
+		if (_AbilityOne->rot == false) {
+			_AbilityOne->rot = true;
+		}
+		else {
+			_AbilityOne->rot = false;
+		}
+		return;
+	}
+	HoldingWall = true;
+	_CurrentWeapon = nullptr;
+	this->InputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::UseWall);
 	FHitResult Hit;
 	FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
 	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
 
-	
+
 
 	FVector End = ((NextShotVector * 10000) + Start);
 	FCollisionQueryParams CollisionParams;
@@ -271,9 +322,9 @@ void APlayerCharacter::UseWall()
 
 	if (bHit) {
 		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
-		ASageWall_Ability* newWall = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
+		_AbilityOne = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
 		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
-		if (dist > 800) {			
+		if (dist > 800) {
 			Hit.ImpactPoint = ((NextShotVector * 800) + Start);
 		}
 		FVector DownVec = Hit.ImpactPoint;
@@ -281,21 +332,84 @@ void APlayerCharacter::UseWall()
 		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
 		//DrawDebugLine(GetWorld(), Hit.ImpactPoint, DownVec, FColor::Red, false, 5.f, 0, 5);
 		GetWorld()->LineTraceSingleByChannel(Hit, Hit.ImpactPoint, DownVec, ECC_Visibility, CollisionParams);
-		newWall->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
-		newWall->PlaceWall();
+		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
+		//newWall->PlaceWall();
+		
 		FRotator wallRot = FRotator(0.f, 90.f, 0.f);
 
 		FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
 		playerLook.Pitch = 0.f;
 
+
+		_AbilityOne->SetActorRotation(playerLook);
+
+
+		_AbilityOne->AddActorLocalRotation(wallRot);
+	
 		
-		newWall->SetActorRotation(playerLook);
-
-
-		newWall->AddActorLocalRotation(wallRot);
 
 	}
 }
+
+void APlayerCharacter::PutWallAway()
+{
+	HoldingWall = false;
+	_AbilityOne->Destroy();
+	_AbilityOne = nullptr;
+	_CurrentWeapon = _Primary;
+}
+
+void APlayerCharacter::UpdateWallPos(float rotation)
+{
+	FHitResult Hit;
+	FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
+	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+
+
+
+	FVector End = ((NextShotVector * 10000) + Start);
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
+	CollisionParams.AddIgnoredActor(this);
+	CollisionParams.AddIgnoredActor(_AbilityOne);
+
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams);
+
+	//DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, 0, 5);
+
+
+	if (bHit) {
+		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
+		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
+		if (dist > 800) {
+			Hit.ImpactPoint = ((NextShotVector * 800) + Start);
+		}
+		FVector DownVec = Hit.ImpactPoint;
+		DownVec.Z -= 3000;
+		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
+		//DrawDebugLine(GetWorld(), Hit.ImpactPoint, DownVec, FColor::Red, false, 5.f, 0, 5);
+		GetWorld()->LineTraceSingleByChannel(Hit, Hit.ImpactPoint, DownVec, ECC_Visibility, CollisionParams);
+		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
+
+
+		FRotator wallRot = FRotator(0.f, 90.f, 0.f);
+
+		FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
+		playerLook.Pitch = 0.f;
+
+
+		_AbilityOne->SetActorRotation(playerLook);
+
+		if (!_AbilityOne->rot) {
+			_AbilityOne->AddActorLocalRotation(wallRot);
+		}
+		
+
+
+	}
+}
+
 
 void APlayerCharacter::PickUpGun(AGun* newGun)
 {
@@ -327,6 +441,13 @@ void APlayerCharacter::PressDoor() {
 	}
 }
 
+void APlayerCharacter::Reload()
+{
+	if (_CurrentWeapon) {
+		_CurrentWeapon->Reload();
+	}
+}
+
 void APlayerCharacter::SwitchProximityEnter(ADoorSwitchActor* newSwitch)
 {
 	if (newSwitch) {
@@ -352,6 +473,7 @@ void APlayerCharacter::PrintInventory()
 	if (_Primary) {
 		_Primary->AppendName(sInventory);
 		sInventory.Append(" | ");
+
 	}
 	if (_Secondary) {
 		_Secondary->AppendName(sInventory);
@@ -366,7 +488,11 @@ void APlayerCharacter::PrintInventory()
 	FString currentWeapon = "";
 
 	if (_CurrentWeapon) {
-		_CurrentWeapon->AppendName(currentWeapon);
+		_CurrentWeapon->AppendName(currentWeapon);	
+		currentWeapon.Append(" | ");
+		currentWeapon.Append(FString::FromInt(_CurrentWeapon->currentMagAmmo));
+		currentWeapon.Append(" | ");
+		currentWeapon.Append(FString::FromInt(_CurrentWeapon->reserveAmmo));
 	}
 	
 

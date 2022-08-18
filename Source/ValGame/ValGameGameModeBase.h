@@ -15,4 +15,7 @@ class VALGAME_API AValGameGameModeBase : public AGameModeBase
 	GENERATED_BODY()
 
 		AValGameGameModeBase();
+
+
+
 };

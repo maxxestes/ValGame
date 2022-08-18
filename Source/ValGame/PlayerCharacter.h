@@ -7,6 +7,8 @@
 #include "Gun.h"
 #include "DoorSwitchActor.h"
 #include "SageWall_Ability.h"
+#include "Components/TextBlock.h"
+#include "PlayerWidget.h"
 #include "PlayerCharacter.generated.h"
 
 
@@ -69,6 +71,12 @@ protected:
 
 	void UseWall();
 
+	void HoldWall();
+
+	void PutWallAway();
+
+	void UpdateWallPos(float rotation);
+
 	FVector CalculateNextVector(const FVector& CurrentLookAtVector);
 
 	FTimerHandle FireTimerHandle;
@@ -95,6 +103,10 @@ protected:
 	bool lookingRight;
 
 	bool lookingLeft;
+
+	bool HoldingWall;
+
+
 		
 
 public:	
@@ -113,12 +125,17 @@ public:
 
 	void PressDoor();
 
+	void Reload();
+
 	void SwitchProximityEnter(ADoorSwitchActor* newSwitch);
 
 	void SwitchProximityExit();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TSubclassOf<ASageWall_Ability> SageWall_BP;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UPlayerWidget* ammoWidget;
 
 
 

@@ -18,6 +18,7 @@ AGun::AGun()
 
 
 
+
 	this->ObjMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GunMesh"));
 
 	this->ObjMesh->AttachTo(SceneComponent);
@@ -80,6 +81,32 @@ void AGun::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 	}
 
 	GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, *pickup);
+}
+
+void AGun::Reload()
+{
+	if (reserveAmmo != 0) {
+		uint8 ammoNeeded = magSize - currentMagAmmo;
+		if (reserveAmmo < ammoNeeded) {
+			currentMagAmmo += reserveAmmo;
+			reserveAmmo = 0;
+		}
+		else {
+			currentMagAmmo = magSize;
+			reserveAmmo -= ammoNeeded;
+		}
+		//Not working?
+		//reserveAmmo < ammoNeeded ? currentMagAmmo += reserveAmmo, reserveAmmo = 0
+		//	: currentMagAmmo = magSize, reserveAmmo -= ammoNeeded;
+	}
+}
+
+void AGun::ManageAmmoAfterShot(uint8 shotsFired)
+{
+	currentMagAmmo -= shotsFired;
+	if (currentMagAmmo == 0) {
+		Reload();
+	}
 }
 
 /*

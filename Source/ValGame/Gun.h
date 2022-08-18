@@ -46,6 +46,12 @@ public:
 		uint8 magSize;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
+		uint8 currentMagAmmo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
+		uint8 reserveAmmo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
 		uint8 baseDamage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aiming")
@@ -91,6 +97,12 @@ public:
 			class AActor* OtherActor,class UPrimitiveComponent* OtherComp,
 			int32 OtherBodyIndex, bool bFromSweep,
 			const FHitResult& SweepResult);
+
+	UFUNCTION()
+		void Reload();
+
+	UFUNCTION()
+		void ManageAmmoAfterShot(uint8 shotsFired);
 
 	/** Attaches the actor to a FirstPersonCharacter */
 	//UFUNCTION(BlueprintCallable, Category = "Gun")

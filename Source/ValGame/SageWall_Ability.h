@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "CharacterAbility.h"
 #include "Components/TimelineComponent.h"
+#include "SageWallComp.h"
 #include "SageWall_Ability.generated.h"
 
 /**
@@ -23,6 +24,8 @@ class VALGAME_API ASageWall_Ability : public ACharacterAbility
 		UPROPERTY(EditAnywhere)
 			UCurveFloat* WallTimelineFloatCurve;
 
+		bool rot;
+
 	protected:
 
 		virtual void BeginPlay() override;
@@ -35,6 +38,8 @@ class VALGAME_API ASageWall_Ability : public ACharacterAbility
 		//BoxComponent which will be used as our Proximity volume.
 		UPROPERTY(EditAnywhere, BlueprintReadWrite)
 			class UBoxComponent* WallProxVolume;
+
+		
 
 
 
@@ -52,7 +57,7 @@ class VALGAME_API ASageWall_Ability : public ACharacterAbility
 
 
 		UPROPERTY(EditAnywhere)
-		TArray<UStaticMeshComponent*> _wallArray;
+		TArray<USageWallComp*> _wallArray;
 
 	
 };

@@ -80,7 +80,7 @@ float ABreakableDoor::getHealth()
 void ABreakableDoor::setHealth(float newHealth)
 {
 	if (newHealth <= 0) {
-		Destroy();
+		Door->DestroyComponent();
 	}
 	this->Health = newHealth;
 }
