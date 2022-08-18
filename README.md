@@ -4,7 +4,7 @@ with some blueprint creation to imitate industry flow.
 
 Current additions:
 
-Similar recoil system.
+Similar recoil system.  
 Gun C++ class that allows any possible gun to be made as a blueprint off of it.
 pick up / Gun management system (primary, secondary, knife, ammo system, etc.)
 Similar movement with air strafing, walking, crouching, etc.
