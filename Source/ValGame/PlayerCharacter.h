@@ -90,6 +90,8 @@ protected:
 
 	FTimerHandle ReloadTimerHandle;
 
+	FTimerDelegate ReloadDeligate;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Aiming")
 		float CurrentVertRecoil;
 

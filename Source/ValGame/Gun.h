@@ -23,6 +23,7 @@ enum FireType
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "PlayerWidget.h"
 #include "Gun.generated.h"
 
 
@@ -102,7 +103,7 @@ public:
 			const FHitResult& SweepResult);
 
 	UFUNCTION()
-		void Reload();
+		void Reload(UPlayerWidget* widget);
 
 	UFUNCTION()
 		uint8 ManageAmmoAfterShot(uint8 shotsFired);

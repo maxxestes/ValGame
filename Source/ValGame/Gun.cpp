@@ -80,10 +80,10 @@ void AGun::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp,
 		}
 	}
 
-	GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, *pickup);
+	
 }
 
-void AGun::Reload()
+void AGun::Reload(UPlayerWidget* widget)
 {
 	if (reserveAmmo != 0) {
 		uint8 ammoNeeded = magSize - currentMagAmmo;
@@ -95,6 +95,8 @@ void AGun::Reload()
 			currentMagAmmo = magSize;
 			reserveAmmo -= ammoNeeded;
 		}
+		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, "Reloading");
+		widget->updateAmmoCount(currentMagAmmo, reserveAmmo);
 		//Not working?
 		//reserveAmmo < ammoNeeded ? currentMagAmmo += reserveAmmo, reserveAmmo = 0
 		//	: currentMagAmmo = magSize, reserveAmmo -= ammoNeeded;

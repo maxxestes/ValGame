@@ -49,7 +49,7 @@ void APlayerCharacter::BeginPlay()
 	if (_AmmoWidget) {
 		_AmmoWidget->AddToViewport();
 	}
-
+	
 }
 
 // Called every frame
@@ -147,9 +147,10 @@ void APlayerCharacter::OnFire()
 		{
 			FHitResult Hit;
 			FHitResult HitWall;
+			FHitResult HitAnything;
 			TArray<FHitResult> hitResultArray;
 			FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
-			FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+			FVector Start = FirstPersonCameraComponent->GetComponentLocation() + (NextShotVector * 10);
 
 
 			NextShotVector = CalculateNextVector(NextShotVector);
@@ -159,21 +160,17 @@ void APlayerCharacter::OnFire()
 			CollisionParams.bTraceComplex = true;
 			CollisionParams.AddIgnoredActor(this);
 
-			FCollisionQueryParams traceParams;
 
-			FCollisionObjectQueryParams objectParams;
-			//objectParams.ObjectTypesToQuery = ABreakableDoor;
+			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1, CollisionParams);
 
-			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1, traceParams);
+			bool bHitWall = GetWorld()->LineTraceSingleByChannel(HitWall, Start, End, ECC_GameTraceChannel2, CollisionParams);
 
-			bool bHitWall = GetWorld()->LineTraceSingleByChannel(HitWall, Start, End, ECC_GameTraceChannel2, traceParams);
-
+			bool bHitAnything = GetWorld()->LineTraceSingleByChannel(HitAnything, Start, End, ECC_Camera, CollisionParams);
 			
-			
-			//GetWorld()->LineTraceMultiByObjectType(hitResultArray, Start, End)
 
-			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, 0, 5);
-			
+			if (bHitAnything) {
+				DrawDebugBox(GetWorld(), HitAnything.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
+			}
 
 			if (bHit) {
 				DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
@@ -520,7 +517,7 @@ void APlayerCharacter::PressDoor() {
 void APlayerCharacter::Reload()
 {
 	if (_CurrentWeapon) {
-		GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, _CurrentWeapon, &AGun::Reload, _CurrentWeapon->reloadTime, false);
+		GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, ReloadDeligate, _CurrentWeapon->reloadTime, false);
 		_AmmoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
 	}
 }
@@ -546,8 +543,9 @@ void APlayerCharacter::EquipWeapon(AGun* newCurrentWeapon) {
 			GetWorld()->GetTimerManager().ClearTimer(ReloadTimerHandle);	
 		}
 		if (_CurrentWeapon->currentMagAmmo <= 0) {
-			GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, _CurrentWeapon, &AGun::Reload, _CurrentWeapon->reloadTime, false);
+			GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, ReloadDeligate, _CurrentWeapon->reloadTime, false);
 		}
+		ReloadDeligate.BindUFunction(_CurrentWeapon, FName("Reload"), _AmmoWidget);
 	}
 }
 
