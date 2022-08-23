@@ -24,9 +24,20 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 		class UTextBlock* SageWallCounter;
 
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+		class UTextBlock* JettSmokeCounter;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+		class UTextBlock* CurrentGun;
+
 
 	void updateAmmoCount(uint8 magAmmo, uint8 reserveAmmo);
 
 	void updateWallCount(uint8 AvailableWalls);
+
+	void updateSmokeCount(uint8 AvailableSmokes);
+
+	void updateGunDisplay(FString gunName);
+
 	
 };

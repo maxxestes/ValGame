@@ -26,10 +26,12 @@ APlayerCharacter::APlayerCharacter()
 	isRunning = false;
 	isWalking = false;
 	HoldingWall = false;
+	HoldingSmoke = false;
 	weaponIndex = 0;
 	numHeldMoveKeys = 0;
 	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
-
+	numAbilityOneCharges = 1;
+	numAbilityTwoCharges = 2;
 
 
 
@@ -83,6 +85,11 @@ void APlayerCharacter::Tick(float DeltaTime)
 	if (HoldingWall) {
 		UpdateWallPos(changeInYaw);
 	}
+
+	if (HoldingSmoke) {
+		UpdateSmokePos();
+	}
+
 }
 
 // Called to bind functionality to input
@@ -107,6 +114,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	PlayerInputComponent->BindAction("PressDoor", IE_Pressed, this, &APlayerCharacter::PressDoor);
 
+	PlayerInputComponent->BindAction("ThrowSmoke", IE_Pressed, this, &APlayerCharacter::ThrowSmoke);
+	PlayerInputComponent->BindAction("ThrowSmoke", IE_Released, this, &APlayerCharacter::LetGoSmoke);
+
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerCharacter::Reload);
 
 	PlayerInputComponent->BindAction("SwitchWeaponPrimary", IE_Pressed, this, &APlayerCharacter::ChangeToPrimary);
@@ -130,7 +140,7 @@ void APlayerCharacter::OnFire()
 {
 	// try and fire a projectile
 
-	if (_CurrentWeapon && _CurrentWeapon->currentMagAmmo > 0)
+	if (_CurrentWeapon && !GetWorld()->GetTimerManager().IsTimerActive(ReloadTimerHandle))
 	{
 		UWorld* const World = GetWorld();
 		if (World != nullptr)
@@ -194,8 +204,12 @@ void APlayerCharacter::OnFire()
 				GetWorld()->GetTimerManager().SetTimer(FireTimerHandle, this, &APlayerCharacter::OnFire, _CurrentWeapon->fireRate, false);
 			}
 
-			_CurrentWeapon->ManageAmmoAfterShot(1);
+			uint8 currentMag = _CurrentWeapon->ManageAmmoAfterShot(1);
 
+			if (currentMag <= 0) {
+				//GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, "wtf");
+				Reload();
+			}
 			_AmmoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
 			
 
@@ -359,6 +373,58 @@ void APlayerCharacter::HoldWall()
 	}
 }
 
+void APlayerCharacter::ThrowSmoke()
+{
+	if (numAbilityTwoCharges > 0) {
+		_CurrentWeapon = nullptr;
+		_AbilityTwo = GetWorld()->SpawnActor<AJettSmoke_Ability>(JettSmoke_BP);
+		FVector InFront = FirstPersonCameraComponent->GetForwardVector();
+		FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+		FVector End = ((InFront * 150) + Start);
+		_AbilityTwo->SetActorLocation(End, false, 0, ETeleportType::None);
+		this->_AbilityTwo->currDir = (InFront * 30000) + Start;
+		HoldingSmoke = true;
+	}
+}
+
+void APlayerCharacter::LetGoSmoke()
+{
+	HoldingSmoke = false;
+	_CurrentWeapon = _Primary;
+	numAbilityTwoCharges -= 1;
+	_AmmoWidget->updateSmokeCount(numAbilityTwoCharges);
+	if (!this->_AbilityTwo->isExpanded) {
+		this->_AbilityTwo->SmokeBall->SetSimulatePhysics(true);
+		this->_AbilityTwo->SmokeBall->SetEnableGravity(true);
+	}
+}
+
+
+void APlayerCharacter::UpdateSmokePos()
+{
+	if (!this->_AbilityTwo->isExpanded) {
+		FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
+		FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+
+
+
+		FVector End = ((NextShotVector * 30000) + Start);
+
+
+		FVector newEnd = (UKismetMathLibrary::VInterpTo(this->_AbilityTwo->currDir, End, GetWorld()->DeltaTimeSeconds, 5.0f));
+		this->_AbilityTwo->currDir = newEnd;
+		FVector dirGoing = newEnd - this->_AbilityTwo->GetActorLocation();
+		if (dirGoing.Normalize()) {
+			dirGoing *= _AbilityTwo->MissleSpeed;
+			this->_AbilityTwo->SetActorLocation(this->_AbilityTwo->GetActorLocation() + dirGoing);
+		}
+	}
+	else {
+		HoldingSmoke = false;
+	}
+	
+}
+
 void APlayerCharacter::PutWallAway()
 {
 	HoldingWall = false;
@@ -366,6 +432,8 @@ void APlayerCharacter::PutWallAway()
 	_AbilityOne = nullptr;
 	_CurrentWeapon = _Primary;
 }
+
+
 
 void APlayerCharacter::UpdateWallPos(float rotation)
 {
@@ -412,7 +480,7 @@ void APlayerCharacter::UpdateWallPos(float rotation)
 		if (!_AbilityOne->rot) {
 			_AbilityOne->AddActorLocalRotation(wallRot);
 		}
-		
+
 
 
 	}
@@ -452,7 +520,7 @@ void APlayerCharacter::PressDoor() {
 void APlayerCharacter::Reload()
 {
 	if (_CurrentWeapon) {
-		_CurrentWeapon->Reload();
+		GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, _CurrentWeapon, &AGun::Reload, _CurrentWeapon->reloadTime, false);
 		_AmmoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
 	}
 }
@@ -473,6 +541,13 @@ void APlayerCharacter::EquipWeapon(AGun* newCurrentWeapon) {
 	if (newCurrentWeapon) {
 		_CurrentWeapon = newCurrentWeapon;
 		_AmmoWidget->updateAmmoCount(_CurrentWeapon->currentMagAmmo, _CurrentWeapon->reserveAmmo);
+		_AmmoWidget->updateGunDisplay(_CurrentWeapon->GetName());
+		if (GetWorld()->GetTimerManager().IsTimerActive(ReloadTimerHandle)) {
+			GetWorld()->GetTimerManager().ClearTimer(ReloadTimerHandle);	
+		}
+		if (_CurrentWeapon->currentMagAmmo <= 0) {
+			GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, _CurrentWeapon, &AGun::Reload, _CurrentWeapon->reloadTime, false);
+		}
 	}
 }
 

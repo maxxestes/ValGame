@@ -9,6 +9,7 @@
 #include "SageWall_Ability.h"
 #include "Components/TextBlock.h"
 #include "PlayerWidget.h"
+#include "JettSmoke_Ability.h"
 #include "PlayerCharacter.generated.h"
 
 
@@ -73,13 +74,21 @@ protected:
 
 	void HoldWall();
 
+	void ThrowSmoke();
+
+	void LetGoSmoke();
+
 	void PutWallAway();
 
 	void UpdateWallPos(float rotation);
 
+	void UpdateSmokePos();
+
 	FVector CalculateNextVector(const FVector& CurrentLookAtVector);
 
 	FTimerHandle FireTimerHandle;
+
+	FTimerHandle ReloadTimerHandle;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Aiming")
 		float CurrentVertRecoil;
@@ -98,6 +107,10 @@ protected:
 
 	uint8 numHeldMoveKeys;
 
+	uint8 numAbilityOneCharges;
+
+	uint8 numAbilityTwoCharges;
+
 	FVector LastFrameLookAt;
 
 	bool lookingRight;
@@ -106,7 +119,7 @@ protected:
 
 	bool HoldingWall;
 
-
+	bool HoldingSmoke;
 		
 
 public:	
@@ -134,8 +147,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TSubclassOf<ASageWall_Ability> SageWall_BP;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	//UPlayerWidget* ammoWidget;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TSubclassOf<AJettSmoke_Ability> JettSmoke_BP;
+
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TSubclassOf<UPlayerWidget> PlayerWidget_BP;
@@ -155,6 +169,8 @@ private:
 	ADoorSwitchActor* _currentSwitch;
 
 	ASageWall_Ability* _AbilityOne;
+
+	AJettSmoke_Ability* _AbilityTwo;
 
 	UPlayerWidget* _AmmoWidget;
 

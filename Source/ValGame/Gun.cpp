@@ -101,12 +101,9 @@ void AGun::Reload()
 	}
 }
 
-void AGun::ManageAmmoAfterShot(uint8 shotsFired)
+uint8 AGun::ManageAmmoAfterShot(uint8 shotsFired)
 {
-	currentMagAmmo -= shotsFired;
-	if (currentMagAmmo == 0) {
-		Reload();
-	}
+	return currentMagAmmo -= shotsFired;
 }
 
 /*

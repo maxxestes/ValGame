@@ -43,6 +43,9 @@ public:
 		float fireRate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
+		float reloadTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
 		uint8 magSize;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunProperties")
@@ -102,7 +105,7 @@ public:
 		void Reload();
 
 	UFUNCTION()
-		void ManageAmmoAfterShot(uint8 shotsFired);
+		uint8 ManageAmmoAfterShot(uint8 shotsFired);
 
 	/** Attaches the actor to a FirstPersonCharacter */
 	//UFUNCTION(BlueprintCallable, Category = "Gun")
