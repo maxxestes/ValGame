@@ -80,7 +80,7 @@ protected:
 
 	void PutWallAway();
 
-	void UpdateWallPos(float rotation);
+	void UpdateWallPos();
 
 	void UpdateSmokePos();
 

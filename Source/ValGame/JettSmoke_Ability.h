@@ -29,10 +29,6 @@ class VALGAME_API AJettSmoke_Ability : public ACharacterAbility
 
 		bool isExpanded;
 
-		float SmokeLifetime;
-
-		float maximumTravelTime;
-
 		FTimerHandle LifetimeExpandedHandle;
 
 		FTimerHandle MaximumTravelHandle;
@@ -41,6 +37,12 @@ class VALGAME_API AJettSmoke_Ability : public ACharacterAbility
 
 		UPROPERTY(EditAnywhere, BlueprintReadWrite)
 			float MissleSpeed;
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+			float SmokeLifetime;
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+			float maximumTravelTime;
 
 		UFUNCTION()
 			void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp,

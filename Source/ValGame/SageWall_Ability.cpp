@@ -43,16 +43,14 @@ void ASageWall_Ability::BeginPlay()
 
 	FOnTimelineEventStatic onTimelineFinishedCallback;
 
-	//Binding our float track to our UpdateTimelineComp Function's output
+
 	UpdateFunctionFloat.BindDynamic(this, &ASageWall_Ability::UpdateTimelineComp);
 
 
-	//If we have a float curve, bind it's graph to our update function
+
 	if (WallTimelineFloatCurve)
 	{
 		WallTimelineComp->AddInterpFloat(WallTimelineFloatCurve, UpdateFunctionFloat);
-		//onTimelineFinishedCallback.BindUFunction(this, FName{ TEXT("ChangeRaiseStatus") });
-		//WallTimelineFloatCurve->SetTimelineFinishedFunc(onTimelineFinishedCallback);
 	}
 }
 

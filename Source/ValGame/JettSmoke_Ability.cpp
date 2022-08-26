@@ -57,10 +57,10 @@ void AJettSmoke_Ability::Expand() {
 	if (GetWorld()->GetTimerManager().IsTimerActive(MaximumTravelHandle)) {
 		GetWorld()->GetTimerManager().ClearTimer(MaximumTravelHandle);
 	}
-	SmokeBall->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	//GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, "IWD");
 	SmokeBall->SetSimulatePhysics(false);
 	SmokeBall->SetEnableGravity(false);
+	SmokeBall->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SmokeBall->SetWorldScale3D(FVector(7.0, 7.0, 7.0));
 	isExpanded = true;
 	GetWorld()->GetTimerManager().SetTimer(LifetimeExpandedHandle, this, &AJettSmoke_Ability::Kill, SmokeLifetime, false);

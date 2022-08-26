@@ -83,7 +83,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	LastFrameLookAt = FirstPersonCameraComponent->GetForwardVector();
 	if (HoldingWall) {
-		UpdateWallPos(changeInYaw);
+		UpdateWallPos();
 	}
 
 	if (HoldingSmoke) {
@@ -325,49 +325,63 @@ void APlayerCharacter::HoldWall()
 	}
 
 	
-		HoldingWall = true;
-		_CurrentWeapon = nullptr;
-		this->InputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::UseWall);
-		FHitResult Hit;
-		FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
-		FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+	HoldingWall = true;
+	_CurrentWeapon = nullptr;
+	this->InputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::UseWall);
+	FHitResult Hit;
+	FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
+	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
 
 
 
-		FVector End = ((NextShotVector * 10000) + Start);
-		FCollisionQueryParams CollisionParams;
-		CollisionParams.bTraceComplex = true;
-		CollisionParams.AddIgnoredActor(this);
+	FVector End = ((NextShotVector * 10000) + Start);
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
+	CollisionParams.AddIgnoredActor(this);
 
 
-		bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams);
 
+	_AbilityOne = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
+	if (bHit) {
+			
+		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
+		End = Hit.ImpactPoint;
+		if (dist > 800) {
+			End = ((NextShotVector * 800) + Start);
+		}
 
-		if (bHit) {
-			_AbilityOne = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
-			float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
-			if (dist > 800) {
-				Hit.ImpactPoint = ((NextShotVector * 800) + Start);
-			}
-			FVector DownVec = Hit.ImpactPoint;
-			DownVec.Z -= 3000;
-			GetWorld()->LineTraceSingleByChannel(Hit, Hit.ImpactPoint, DownVec, ECC_Visibility, CollisionParams);
-			_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
-		
-			FRotator wallRot = FRotator(0.f, 90.f, 0.f);
-
-			FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
-			playerLook.Pitch = 0.f;
-
-
-			_AbilityOne->SetActorRotation(playerLook);
-
-
-			_AbilityOne->AddActorLocalRotation(wallRot);
 	
 		
 
 	}
+	else {
+		End = ((NextShotVector * 800) + Start);
+	}
+
+	FVector DownVec = End;
+	DownVec.Z -= 3000;
+	bool downHit = GetWorld()->LineTraceSingleByChannel(Hit, End, DownVec, ECC_Visibility, CollisionParams);
+
+	if (downHit) {
+		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
+	}
+	else {
+		DownVec = Start;
+		DownVec.Z -= 3000;
+		GetWorld()->LineTraceSingleByChannel(Hit, Start, DownVec, ECC_Visibility, CollisionParams);
+		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
+	}
+	
+
+	FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
+	playerLook.Pitch = 0.f;
+
+
+	_AbilityOne->SetActorRotation(playerLook);
+
+
+	_AbilityOne->AddActorLocalRotation(FRotator(0.f, 90.f, 0.f));
 }
 
 void APlayerCharacter::ThrowSmoke()
@@ -386,13 +400,15 @@ void APlayerCharacter::ThrowSmoke()
 
 void APlayerCharacter::LetGoSmoke()
 {
-	HoldingSmoke = false;
-	_CurrentWeapon = _Primary;
-	numAbilityTwoCharges -= 1;
-	_AmmoWidget->updateSmokeCount(numAbilityTwoCharges);
-	if (!this->_AbilityTwo->isExpanded) {
-		this->_AbilityTwo->SmokeBall->SetSimulatePhysics(true);
-		this->_AbilityTwo->SmokeBall->SetEnableGravity(true);
+	if (numAbilityTwoCharges > 0) {
+		HoldingSmoke = false;
+		_CurrentWeapon = _Primary;
+		numAbilityTwoCharges -= 1;
+		_AmmoWidget->updateSmokeCount(numAbilityTwoCharges);
+		if (!this->_AbilityTwo->isExpanded) {
+			this->_AbilityTwo->SmokeBall->SetSimulatePhysics(true);
+			this->_AbilityTwo->SmokeBall->SetEnableGravity(true);
+		}
 	}
 }
 
@@ -432,55 +448,51 @@ void APlayerCharacter::PutWallAway()
 
 
 
-void APlayerCharacter::UpdateWallPos(float rotation)
+void APlayerCharacter::UpdateWallPos()
 {
 	FHitResult Hit;
 	FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
 	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
-
-
-
 	FVector End = ((NextShotVector * 10000) + Start);
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.bTraceComplex = true;
 	CollisionParams.AddIgnoredActor(this);
-	CollisionParams.AddIgnoredActor(_AbilityOne);
-
-
 	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams);
 
-	//DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f, 0, 5);
-
-
 	if (bHit) {
-		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
 		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
+		End = Hit.ImpactPoint;
 		if (dist > 800) {
-			Hit.ImpactPoint = ((NextShotVector * 800) + Start);
+			End = ((NextShotVector * 800) + Start);
 		}
-		FVector DownVec = Hit.ImpactPoint;
-		DownVec.Z -= 3000;
-		//DrawDebugBox(GetWorld(), Hit.ImpactPoint, FVector(5, 5, 5), FColor::Emerald, false, 2.0f);
-		//DrawDebugLine(GetWorld(), Hit.ImpactPoint, DownVec, FColor::Red, false, 5.f, 0, 5);
-		GetWorld()->LineTraceSingleByChannel(Hit, Hit.ImpactPoint, DownVec, ECC_Visibility, CollisionParams);
+	}
+	else {
+		End = ((NextShotVector * 800) + Start);
+	}
+
+	FVector DownVec = End;
+	DownVec.Z -= 3000;
+	bool downHit = GetWorld()->LineTraceSingleByChannel(Hit, End, DownVec, ECC_Visibility, CollisionParams);
+
+	if (downHit) {
 		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
+	}
+	else {
+		DownVec = Start;
+		DownVec.Z -= 3000;
+		downHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, DownVec, ECC_Visibility, CollisionParams);
+		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
+	}
 
 
-		FRotator wallRot = FRotator(0.f, 90.f, 0.f);
-
-		FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
-		playerLook.Pitch = 0.f;
-
-
-		_AbilityOne->SetActorRotation(playerLook);
+	FRotator playerLook = FirstPersonCameraComponent->GetForwardVector().Rotation();
+	playerLook.Pitch = 0.f;
+	_AbilityOne->SetActorRotation(playerLook);
 
 		if (!_AbilityOne->rot) {
-			_AbilityOne->AddActorLocalRotation(wallRot);
+			_AbilityOne->AddActorLocalRotation(FRotator(0.f, 90.f, 0.f));
 		}
-
-
-
-	}
+	
 }
 
 
