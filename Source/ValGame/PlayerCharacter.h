@@ -10,6 +10,8 @@
 #include "Components/TextBlock.h"
 #include "PlayerWidget.h"
 #include "JettSmoke_Ability.h"
+#include "JettUpdrafting_Ability.h"
+#include "JettDash_Ability.h"
 #include "PlayerCharacter.generated.h"
 
 
@@ -78,11 +80,17 @@ protected:
 
 	void LetGoSmoke();
 
+	void UseUpdraft();
+
+	void LetGoUpdraft();
+
 	void PutWallAway();
 
 	void UpdateWallPos();
 
 	void UpdateSmokePos();
+
+	void Dash();
 
 	FVector CalculateNextVector(const FVector& CurrentLookAtVector);
 
@@ -152,6 +160,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TSubclassOf<AJettSmoke_Ability> JettSmoke_BP;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TSubclassOf<AJettUpdrafting_Ability> JettUpdraft_BP;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TSubclassOf<AJettDash_Ability> JettDash_BP;
+
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TSubclassOf<UPlayerWidget> PlayerWidget_BP;
@@ -173,6 +187,10 @@ private:
 	ASageWall_Ability* _AbilityOne;
 
 	AJettSmoke_Ability* _AbilityTwo;
+
+	AJettUpdrafting_Ability* _AbilityThree;
+
+	AJettDash_Ability* _AbilityFour;
 
 	UPlayerWidget* _AmmoWidget;
 

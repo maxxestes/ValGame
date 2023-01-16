@@ -117,6 +117,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("ThrowSmoke", IE_Pressed, this, &APlayerCharacter::ThrowSmoke);
 	PlayerInputComponent->BindAction("ThrowSmoke", IE_Released, this, &APlayerCharacter::LetGoSmoke);
 
+	PlayerInputComponent->BindAction("Updraft", IE_Pressed, this, &APlayerCharacter::UseUpdraft);
+	PlayerInputComponent->BindAction("Updraft", IE_Released, this, &APlayerCharacter::LetGoUpdraft);
+
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerCharacter::Reload);
 
 	PlayerInputComponent->BindAction("SwitchWeaponPrimary", IE_Pressed, this, &APlayerCharacter::ChangeToPrimary);
@@ -128,6 +131,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &APlayerCharacter::Crouch);
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &APlayerCharacter::OnCrouchStop);
+
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &APlayerCharacter::Dash);
 
 	PlayerInputComponent->BindAction("ScrollNextWeapon", IE_Pressed, this, &APlayerCharacter::ScrollToNextWeapon);
 	PlayerInputComponent->BindAction("ScrollPrevWeapon", IE_Pressed, this, &APlayerCharacter::ScrollToPrevWeapon);
@@ -311,6 +316,16 @@ void APlayerCharacter::UseWall()
 
 void APlayerCharacter::HoldWall()
 {
+	/*
+	* Checks to see if the player have wall charges remaining before holding.
+	*/
+	if (_AbilityOne && _AbilityOne->NumberOfCharges <= 0) {
+		return;
+	}
+
+	/*
+	* If we press the wall button again while holding, we rotate the wall 90 degrees.
+	*/
 	if (HoldingWall) {
 		if (_AbilityOne->rot == false) {
 			_AbilityOne->rot = true;
@@ -320,49 +335,41 @@ void APlayerCharacter::HoldWall()
 		}
 		return;
 	}
-	if (_AbilityOne && _AbilityOne->NumberOfCharges <= 0) {
-		return;
-	}
 
-	
 	HoldingWall = true;
 	_CurrentWeapon = nullptr;
 	this->InputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::UseWall);
+
 	FHitResult Hit;
 	FVector NextShotVector = FirstPersonCameraComponent->GetForwardVector();
 	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
-
-
-
 	FVector End = ((NextShotVector * 10000) + Start);
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.bTraceComplex = true;
 	CollisionParams.AddIgnoredActor(this);
-
-
 	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, CollisionParams);
-
 	_AbilityOne = GetWorld()->SpawnActor<ASageWall_Ability>(SageWall_BP);
-	if (bHit) {
-			
-		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
+
+	/*
+	* If our line trace collides with visibility channel before 800 units, the wall is placed
+	* at the collision. If not, the wall is placed at 800 units.
+	*/
+	if (bHit && FVector::Dist2D(Start, Hit.ImpactPoint) < 800) {	
 		End = Hit.ImpactPoint;
-		if (dist > 800) {
-			End = ((NextShotVector * 800) + Start);
-		}
-
-	
-		
-
 	}
 	else {
 		End = ((NextShotVector * 800) + Start);
 	}
 
+
 	FVector DownVec = End;
 	DownVec.Z -= 3000;
 	bool downHit = GetWorld()->LineTraceSingleByChannel(Hit, End, DownVec, ECC_Visibility, CollisionParams);
 
+	/*
+	* Sets the location of the wall to the intersection of the previous vector end point
+	* and a very long vector in the -z direction. This is to find the floor below the impact point.
+	*/
 	if (downHit) {
 		_AbilityOne->SetActorLocation(Hit.ImpactPoint, false, 0, ETeleportType::None);
 	}
@@ -382,6 +389,51 @@ void APlayerCharacter::HoldWall()
 
 
 	_AbilityOne->AddActorLocalRotation(FRotator(0.f, 90.f, 0.f));
+}
+
+void APlayerCharacter::Dash()
+{
+
+	if (JettDash_BP) {
+		if (!_AbilityFour) {
+			_AbilityFour = GetWorld()->SpawnActor<AJettDash_Ability>(JettDash_BP);
+		}
+		if (_AbilityFour->NumberOfCharges > 0) {
+			FString TheFloatStr = FString::SanitizeFloat(_AbilityFour->AbilityForce);
+
+			GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, TheFloatStr);
+
+			LaunchCharacter(GetActorForwardVector() * _AbilityFour->AbilityForce, true, true);
+			_AbilityFour->NumberOfCharges -= 1;
+			_AmmoWidget->updateDashCount(_AbilityFour->NumberOfCharges);
+		}
+	}
+
+	
+}
+
+void APlayerCharacter::UseUpdraft()
+{
+	if (JettUpdraft_BP) {
+		if (!_AbilityThree) {
+			_AbilityThree = GetWorld()->SpawnActor<AJettUpdrafting_Ability>(JettUpdraft_BP);
+		}
+		if (_AbilityThree->NumberOfCharges > 0) {
+			if (GetMovementComponent()->IsFalling()) {
+				this->JumpMaxCount += 1;
+			}
+			GetCharacterMovement()->JumpZVelocity = _AbilityThree->AbilitySpeed;
+			Jump();
+			_AbilityThree->NumberOfCharges -= 1;
+			_AmmoWidget->updateUpdraftCount(_AbilityThree->NumberOfCharges);
+		}
+	}
+}
+
+void APlayerCharacter::LetGoUpdraft()
+{
+	GetCharacterMovement()->JumpZVelocity = 420;
+	this->JumpMaxCount = 1;
 }
 
 void APlayerCharacter::ThrowSmoke()
@@ -438,6 +490,8 @@ void APlayerCharacter::UpdateSmokePos()
 	
 }
 
+
+
 void APlayerCharacter::PutWallAway()
 {
 	HoldingWall = false;
@@ -461,9 +515,11 @@ void APlayerCharacter::UpdateWallPos()
 
 	if (bHit) {
 		float dist = FVector::Dist2D(Start, Hit.ImpactPoint);
-		End = Hit.ImpactPoint;
 		if (dist > 800) {
 			End = ((NextShotVector * 800) + Start);
+		}
+		else {
+			End = Hit.ImpactPoint;
 		}
 	}
 	else {
@@ -591,8 +647,6 @@ void APlayerCharacter::PrintInventory()
 	}
 	
 
-
-
 	GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, *sInventory);
 	GEngine->AddOnScreenDebugMessage(6, 3, FColor::Red, *currentWeapon);
 }
@@ -618,7 +672,6 @@ FVector APlayerCharacter::CalculateNextVector(const FVector& CurrentLookAtVector
 		horRecoil += CurrentHorRecoil;
 		horRecoil = FMath::Clamp(horRecoil, -maxRecoil, maxRecoil);
 
-		//FRotator newShotRotation = FRotator(vertRecoil - 2.65f, horRecoil + .75f, 0);
 		Rot.Pitch += vertRecoil -2.65f;
 		Rot.Yaw += horRecoil + .75f;
 		return Rot.Vector();
@@ -639,14 +692,6 @@ void APlayerCharacter::MoveForward(float Value)
 		if (isWalking) {
 			Value = Value / 2;
 		}
-
-		
-
-		
-
-
-
-		
 		// add movement in that direction
 		AddMovementInput(GetActorForwardVector(), Value);
 	}
@@ -673,9 +718,13 @@ void APlayerCharacter::MoveRight(float Value)
 				movComp->AirControl = 0;
 			}
 		}
+		//FString TheFloatStr = FString::SanitizeFloat(Value);
+
+		//GEngine->AddOnScreenDebugMessage(1, 3, FColor::White, TheFloatStr);
 
 		// add movement in that direction
 		AddMovementInput(GetActorRightVector(), Value);
+		
 	}
 }
 

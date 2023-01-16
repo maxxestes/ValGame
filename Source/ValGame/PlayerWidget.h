@@ -28,6 +28,12 @@ public:
 		class UTextBlock* JettSmokeCounter;
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+		class UTextBlock* JettUpdraftCounter;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+		class UTextBlock* JettDashCounter;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 		class UTextBlock* CurrentGun;
 
 
@@ -36,6 +42,10 @@ public:
 	void updateWallCount(uint8 AvailableWalls);
 
 	void updateSmokeCount(uint8 AvailableSmokes);
+
+	void updateUpdraftCount(uint8 AvailableUpdrafts);
+
+	void updateDashCount(uint8 AvailableDashes);
 
 	void updateGunDisplay(FString gunName);
 

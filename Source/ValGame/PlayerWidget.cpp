@@ -15,9 +15,14 @@ void UPlayerWidget::NativeConstruct()
         SageWallCounter->SetText(FText::FromString("Wall Count: 1"));
     }
 
-    if (JettSmokeCounter)
+    if (JettUpdraftCounter)
     {
-        JettSmokeCounter->SetText(FText::FromString("Smoke Count: 2"));
+        JettUpdraftCounter->SetText(FText::FromString("Updraft Count: 2"));
+    }
+
+    if (JettDashCounter)
+    {
+        JettDashCounter->SetText(FText::FromString("Dash Count: 1"));
     }
 
     if (CurrentGun)
@@ -46,6 +51,18 @@ void UPlayerWidget::updateSmokeCount(uint8 AvailableSmokes)
 {
     FString currentSmokes = FString::FromInt(AvailableSmokes);
     JettSmokeCounter->SetText(FText::FromString("Smoke Count: " + currentSmokes));
+}
+
+void UPlayerWidget::updateUpdraftCount(uint8 AvailableUpdrafts)
+{
+    FString currentUpdrafts = FString::FromInt(AvailableUpdrafts);
+    JettUpdraftCounter->SetText(FText::FromString("Updraft Count: " + currentUpdrafts));
+}
+
+void UPlayerWidget::updateDashCount(uint8 AvailableDashes)
+{
+    FString currentDashes = FString::FromInt(AvailableDashes);
+    JettDashCounter->SetText(FText::FromString("Dash Count: " + currentDashes));
 }
 
 void UPlayerWidget::updateGunDisplay(FString gunName)
